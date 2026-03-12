@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# virtual env
+.venv/
+
+# env variables
+.env
+
+# local outputs
+out/
+out_cli/
+out_ui/
+tmp/
+students/
+
+# OS files
+.DS_Store
+
+# Streamlit
+.streamlit/
+
+# testing files
+*.log

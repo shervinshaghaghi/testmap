@@ -1,0 +1,7 @@
+{
+  "backend": "ollama",
+  "host": "http://127.0.0.1:11434",
+  "model": "llama3.1:latest",
+  "force_json": false,
+  "num_predict": 2048
+}

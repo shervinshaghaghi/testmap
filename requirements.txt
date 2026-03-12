@@ -1,0 +1,13 @@
+streamlit
+python-dotenv
+supabase
+postgrest
+storage3
+
+python-docx
+openpyxl
+pandas
+numpy
+
+google-generativeai
+requests

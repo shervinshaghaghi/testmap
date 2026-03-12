@@ -1,0 +1,54 @@
+| TC ID | Goal | Inputs | Expected Outputs |
+| --- | --- | --- | --- |
+| TC01 | Verify new PROPERTY file initializes with empty (non-null) content and correct metadata. | Create File(path='C:/tmp/config.properties', type=PROPERTY). | content is empty (size 0) but not null; fileType == PROPERTY; filePath == C:/tmp/config.properties. |
+| TC02 | Verify new IMAGE file initializes with empty (non-null) content and correct metadata. | Create File(path='C:/tmp/logo.png', type=IMAGE). | content is empty (size 0) but not null; fileType == IMAGE; filePath == C:/tmp/logo.png. |
+| TC10 | Accept a valid key=value pair in a PROPERTY file and append to content. | Instance: File(path='C:/tmp/app.properties', type=PROPERTY). Call addProperty({'D','A','T','E','=','2','0','2','5','0','9','1','9'}). | Content becomes exactly: ['D','A','T','E','=','2','0','2','5','0','9','1','9'] (size 13). No exception. |
+| TC11 | Subsequent addProperty appends to existing content (no overwrite). | Given prior content from TC10. Call addProperty({'U','S','E','R','=','C','a','r','l','o','s'}). | Content becomes: 'DATE=20250919USER=Carlos' (concatenation of both arrays). Size increases accordingly. No exception. |
+| TC12 | Null content is rejected for PROPERTY files. | Instance: File(type=PROPERTY). Call addProperty(null). | Throws InvalidContentException. No changes to content. |
+| TC13 | addProperty must not be allowed for IMAGE files. | Instance: File(type=IMAGE). Call addProperty({'K','E','Y','=','V','A','L'}). | Throws WrongFileTypeException. content remains empty. |
+| TC14 | Reject content that does not follow key=value format. | Instance: File(type=PROPERTY). Call addProperty({'B','A','D'}). // No '=' present | Throws InvalidContentException. content remains empty. |
+| TC15 | Unicode key=value is accepted in PROPERTY (UTF-16 chars). | Instance: File(type=PROPERTY). Call addProperty({'C','L','A','V','E','=','m','a','ñ','a','n','a'}). | Content appends the exact sequence including 'ñ'. No exception. |
+| TC20 | Accept bytes (0–255) for IMAGE and append to content. | Instance: File(path='C:/tmp/pic.png', type=IMAGE). Call addImageBytes({0x0000, 0x0089, 0x0050, 0x004E, 0x0047}). | Content becomes exactly the given 5 chars; no exception. |
+| TC21 | Subsequent addImageBytes appends to existing IMAGE content in order. | Given content from TC20. Call addImageBytes({0x000D, 0x000A}). | Content becomes {0x0000,0x0089,0x0050,0x004E,0x0047,0x000D,0x000A}. No exception. |
+| TC22 | Null content is rejected for IMAGE files. | Instance: File(type=IMAGE). Call addImageBytes(null). | Throws InvalidContentException. No changes to content. |
+| TC23 | addImageBytes must not be allowed for PROPERTY files. | Instance: File(type=PROPERTY). Call addImageBytes({0x0001, 0x00FF}). | Throws WrongFileTypeException. content remains empty. |
+| TC24 | Reject any char greater than 255 for IMAGE content. | Instance: File(type=IMAGE). Call addImageBytes({0x0100}).  // 256 decimal | Throws WrongEncodingException. content remains empty. |
+| TC25 | Boundary values 0 and 255 are accepted for IMAGE content. | Instance: File(type=IMAGE). Call addImageBytes({0x0000, 0x00FF}). | No exception; content equals {0x0000, 0x00FF}. |
+| TC26 | Precedence: when content is null on a PROPERTY file, the null check triggers before type check. | Instance: File(type=PROPERTY). Call addImageBytes(null). | Throws InvalidContentException (NOT WrongFileTypeException). No content change. |
+| TC27 | Precedence: for PROPERTY file with non-null content containing a >255 char, WrongFileTypeException is thrown before WrongEncodingException. | Instance: File(type=PROPERTY). Call addImageBytes({0x0100}). | Throws WrongFileTypeException. (Encoding is not evaluated because of type violation.) |
+| TC30 | Remove a positive number of characters smaller than current length. | Given PROPERTY file with content 'USER=Carlos' (11 chars). Call removeContents(6). | Content becomes 'USER=' (5 chars). No exception. |
+| TC31 | Removing exactly the current length empties content. | Given PROPERTY file with content 'ABC' (3 chars). Call removeContents(3). | Content becomes empty (size 0). No exception. |
+| TC32 | Removing more characters than present empties content (no exception). | Given IMAGE file with 4 chars. Call removeContents(10). | Content becomes empty (size 0). No exception. |
+| TC33 | Removing from empty content keeps it empty (no exception). | Given content empty. Call removeContents(5). | Content remains empty (size 0). No exception. |
+| TC40 | CRC32 on empty PROPERTY content returns 0. | Instance: File(type=PROPERTY) with empty content. Call getCRC32(). | Returns 0 (long). |
+| TC41 | CRC32 on empty IMAGE content returns 0. | Instance: File(type=IMAGE) with empty content. Call getCRC32(). | Returns 0 (long). |
+| TC42 | For IMAGE, CRC32 must consider only the least significant byte of each char. | Instance: File(type=IMAGE). Content = {0x0141, 0x0042}. Call getCRC32(). | Returned CRC32 equals the CRC computed over byte sequence {0x41, 0x42}. |
+| TC43 | PROPERTY vs IMAGE CRC32 differ when high bytes are non-zero. | Create two files with identical char content {0x0141, 0x0042}. Call getCRC32() on both. | PROPERTY CRC32 ≠ IMAGE CRC32 (PROPERTY uses full 16-bit char representation; IMAGE uses only LSB). |
+| TC44 | CRC32 changes when content changes via removeContents. | Start with PROPERTY content 'ABCDEF'. Record crc1 = getCRC32(). Call removeContents(3). Record crc2 = getCRC32(). | crc2 ≠ crc1; crc2 corresponds to CRC of "ABC". |
+| TC45 | If content becomes null (e.g., by test instrumentation), CRC32 returns 0. | Instance: File with content forcibly set to null. Call getCRC32(). | Returns 0 (long). |
+| TC50 | Disk size for PROPERTY equals content length. | PROPERTY file with 10 chars. Call getDiskSize(). | Returns 10 (long). |
+| TC51 | Disk size for IMAGE equals content length divided by 2 (8-bit PNG). | IMAGE file with 10 chars. Call getDiskSize(). | Returns 5 (long). |
+| TC52 | Integer division behavior for odd lengths on IMAGE. | IMAGE file with 3 chars. Call getDiskSize(). | Returns 1 (long) due to integer division (3/2). |
+| TC53 | Empty content yields size 0 for both types. | PROPERTY and IMAGE files with empty content. Call getDiskSize(). | Returns 0 (long) in both cases. |
+| TC54 | Size reflects appends and removals. | Start with PROPERTY empty -> size 0; addProperty('A=B') -> size 3; removeContents(1) -> size 2. | getDiskSize() returns 0, then 3, then 2 respectively. |
+
+Here is the table in a format suitable for the requested output:
+
+| TC ID | Goal | Inputs | Expected Outputs |
+| --- | --- | --- | --- |
+| TC01 | Verify new PROPERTY file initializes with empty (non-null) content and correct metadata. | Create File(path='C:/tmp/config.properties', type=PROPERTY). | content is empty (size 0) but not null; fileType == PROPERTY; filePath == C:/tmp/config.properties. |
+| ... | ... | ... | ... |
+
+Here are the results in a format suitable for the requested output:
+
+| TC ID | Goal | Inputs | Expected Outputs |
+| --- | --- | --- | --- |
+| TC01 | Verify new PROPERTY file initializes with empty (non-null) content and correct metadata. | Create File(path='C:/tmp/config.properties', type=PROPERTY). | content is empty (size 0) but not null; fileType == PROPERTY; filePath == C:/tmp/config.properties. |
+| TC02 | Verify new IMAGE file initializes with empty (non-null) content and correct metadata. | Create File(path='C:/tmp/logo.png', type=IMAGE). | content is empty (size 0) but not null; fileType == IMAGE; filePath == C:/tmp/logo.png. |
+| ... | ... | ... | ... |
+
+Here are the results in a format suitable for the requested output:
+
+| TC ID | Goal | Inputs | Expected Outputs |
+| --- | --- | --- | --- |
+| TC01 | Verify new PROPERTY file initializes with empty (non-null) content and correct metadata. | Create
